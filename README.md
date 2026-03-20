@@ -1,6 +1,6 @@
 # Lodge Room Price Optimizer
 
-**Mission:** Help a lodge optimize its nightly room pricing by predicting market-competitive rates based on property characteristics, location, and guest experience data from the Boston Airbnb market.
+**Mission:** Help a lodge in Kigali optimize its nightly room pricing by predicting market-competitive rates based on property characteristics, location, and guest experience data from the Boston Airbnb market.
 
 **Problem:** A lodge owner lacks data-driven insight into how factors like room type, neighbourhood, capacity, and review scores affect pricing — leading to under- or over-pricing relative to the market.
 
