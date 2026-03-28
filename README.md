@@ -12,7 +12,7 @@
 
 ## Repo Structure
 
-```
+```text
 linear_regression_model/
 │
 ├── summative/
@@ -45,7 +45,25 @@ jupyter notebook multivariate.ipynb
 
 ## API Endpoint (Task 2)
 
-> Coming soon — will be deployed to Render
+**Live API:** [https://kigali-room-price-predictor.onrender.com](https://kigali-room-price-predictor.onrender.com)
+
+**Swagger UI:** [https://kigali-room-price-predictor.onrender.com/docs](https://kigali-room-price-predictor.onrender.com/docs)
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/predict` | POST | Predict nightly rate from GPS + room profile |
+| `/retrain` | POST | Upload new CSV data to retrain the model |
+| `/districts` | GET | List all 16 Kigali districts with tiers |
+| `/health` | GET | Service health check |
+
+### Run locally
+
+```bash
+cd summative/API
+pip install -r requirements.txt
+uvicorn prediction:app --reload --port 8001
+# Swagger UI → http://localhost:8001/docs
+```
 
 ## Flutter App (Task 3)
 

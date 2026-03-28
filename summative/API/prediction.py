@@ -1,8 +1,8 @@
 """
 Kigali Lodge Price Optimizer — FastAPI Prediction Service
 =========================================================
-Swagger UI : https://<your-render-service>.onrender.com/docs
-Health     : https://<your-render-service>.onrender.com/health
+Swagger UI : https://kigali-room-price-predictor.onrender.com/docs
+Health     : https://kigali-room-price-predictor.onrender.com/health
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ app.add_middleware(
         "http://localhost:8080",                        # Flutter web dev
         "http://localhost:8000",                        # local API testing
         "http://10.0.2.2:8000",                         # Android emulator → host
-        "https://kigali-lodge-api.onrender.com",        # production (update after first deploy)
+        "https://kigali-room-price-predictor.onrender.com",  # production
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
