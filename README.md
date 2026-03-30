@@ -67,4 +67,77 @@ uvicorn prediction:app --reload --port 8001
 
 ## Flutter App (Task 3)
 
-> Coming soon
+**App:** Kigali Lodge Manager — a business PMS dashboard focused on room management with live AI price prediction.
+
+> **Video demo:** [Google Drive — watch here](https://drive.google.com/drive/folders/1kjQ4Kk2VQpUBu1MV6BMi7e9n2xXvZU3l?usp=sharing)
+
+### Architecture
+
+The app follows **Clean Architecture** with **BLoC state management**, mirroring the Brewmaster project structure:
+
+```text
+FlutterApp/
+└── lib/
+    ├── config/theme/          # AppTheme (teal + lodge-gold palette)
+    ├── core/constants/        # API base URL, Kigali district data
+    ├── data/
+    │   ├── models/            # PredictionRequestModel, PredictionResponseModel
+    │   ├── services/          # PredictionService (http POST /predict)
+    │   └── repositories/      # PredictionRepositoryImpl
+    ├── domain/
+    │   ├── entities/          # PredictionResult
+    │   └── repositories/      # PredictionRepository (abstract)
+    └── presentation/
+        ├── blocs/prediction/  # PredictionBloc, Event, State
+        └── screens/
+            ├── dashboard/     # DashboardScreen — PMS module only
+            └── rooms/         # ManageRoomsScreen, AddRoomScreen
+```
+
+### Why only the PMS rooms module?
+
+The entire summative is about **lodge room price prediction** — keeping only the Room Management module keeps the app focused, on-brand, and directly demonstrates the ML pipeline end-to-end (room profile → API → predicted nightly rate).
+
+### Key screens
+
+| Screen | Purpose |
+| --- | --- |
+| **Dashboard** | Business entry point — single PMS card ("Manage Your Rooms") |
+| **Manage Rooms** | Lists rooms with AI-predicted prices per night |
+| **Add Room** | 20-field form matching all model features + "Predict Optimal Room Price" button |
+
+### Input fields (matches `/predict` API exactly)
+
+All 20 model features are exposed as validated `TextField` or `DropdownButtonFormField` inputs:
+
+| Field | Type | Range |
+| --- | --- | --- |
+| District (→ lat/lon) | Dropdown | 16 Kigali districts |
+| Room type | Dropdown | 0–3 |
+| Accommodates | Int | 1–16 |
+| Bedrooms | Int | 0–10 |
+| Bathrooms | Float | 0–8 |
+| Beds | Int | 1–20 |
+| Guests included | Int | 1–16 |
+| Min nights | Int | 1–365 |
+| Availability (days/yr) | Int | 0–365 |
+| Instant bookable | Toggle | 0/1 |
+| Review score | Float | 20–100 |
+| No. of reviews | Int | 0–1000 |
+| Reviews/month | Float | 0–30 |
+| Superhost | Toggle | 0/1 |
+| Host listings count | Int | 1–300 |
+| Host response time | Dropdown | 0–4 |
+| Property type | Dropdown | 0–9 |
+| Bed type | Dropdown | 0–4 |
+| Cancellation policy | Dropdown | 0–4 |
+
+### Run the app
+
+```bash
+cd summative/FlutterApp
+flutter pub get
+flutter run
+```
+
+The app calls `https://kigali-room-price-predictor.onrender.com/predict` (no local setup needed).
