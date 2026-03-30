@@ -73,7 +73,7 @@ uvicorn prediction:app --reload --port 8001
 
 ### Architecture
 
-The app follows **Clean Architecture** with **BLoC state management**, mirroring the Brewmaster project structure:
+The app follows **Clean Architecture** with **BLoC state management**:
 
 ```text
 FlutterApp/
