@@ -69,7 +69,7 @@ uvicorn prediction:app --reload --port 8001
 
 **App:** Kigali Lodge Manager — a business PMS dashboard focused on room management with live AI price prediction.
 
-> **Video demo:** [Google Drive — watch here](https://drive.google.com/drive/folders/1kjQ4Kk2VQpUBu1MV6BMi7e9n2xXvZU3l?usp=sharing)
+> **Video demo:** [Watch here](https://drive.google.com/drive/folders/1kjQ4Kk2VQpUBu1MV6BMi7e9n2xXvZU3l?usp=sharing)
 
 ### Architecture
 
@@ -141,3 +141,7 @@ flutter run
 ```
 
 The app calls `https://kigali-room-price-predictor.onrender.com/predict` (no local setup needed).
+
+## Video Demo: (Task 4)
+
+> **Video demo:** [Watch here](https://drive.google.com/drive/folders/1kjQ4Kk2VQpUBu1MV6BMi7e9n2xXvZU3l?usp=sharing)
