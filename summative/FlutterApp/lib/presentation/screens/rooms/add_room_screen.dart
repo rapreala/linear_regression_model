@@ -6,9 +6,12 @@ import '../../../core/constants/kigali_districts.dart';
 import '../../../data/models/prediction_request_model.dart';
 import '../../../data/repositories/prediction_repository_impl.dart';
 import '../../../data/services/prediction_service.dart';
+import '../../../domain/entities/room_entry.dart';
 import '../../blocs/prediction/prediction_bloc.dart';
 import '../../blocs/prediction/prediction_event.dart';
 import '../../blocs/prediction/prediction_state.dart';
+import '../../blocs/rooms/rooms_bloc.dart';
+import '../../blocs/rooms/rooms_event.dart';
 import '../../widgets/prediction_result_card.dart';
 
 class AddRoomScreen extends StatelessWidget {
@@ -66,11 +69,15 @@ class _AddRoomViewState extends State<_AddRoomView> {
   final _guestsIncludedCtrl = TextEditingController(text: '2');
 
   // Less-variable fields
-  int _propertyType = 1;   // 0–26 (LabelEncoder)
-  int _bedType = 0;         // 0–4
-  int _hostResponseTime = 0; // 0–4
+  int _propertyType = 1;
+  int _bedType = 0;
+  int _hostResponseTime = 0;
   final _hostListingsCtrl = TextEditingController(text: '1');
-  int _cancellationPolicy = 1; // 0–4
+  int _cancellationPolicy = 1;
+
+  // ── Post-prediction: editable final price ───────────────────
+  final _finalPriceCtrl = TextEditingController();
+  double? _predictedPrice; // AI baseline, stored for the pill label
 
   @override
   void dispose() {
@@ -87,7 +94,33 @@ class _AddRoomViewState extends State<_AddRoomView> {
     _availability365Ctrl.dispose();
     _guestsIncludedCtrl.dispose();
     _hostListingsCtrl.dispose();
+    _finalPriceCtrl.dispose();
     super.dispose();
+  }
+
+  void _saveRoom() {
+    final price = double.tryParse(_finalPriceCtrl.text.trim());
+    if (price == null || price <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid final price first')),
+      );
+      return;
+    }
+
+    final roomTypeLabel = _roomTypeLabels[_roomType];
+    final room = RoomEntry(
+      name: _nameCtrl.text.trim(),
+      type: roomTypeLabel,
+      accommodates: int.parse(_accommodatesCtrl.text.trim()),
+      bedrooms: int.parse(_bedroomsCtrl.text.trim()),
+      district: _selectedDistrict!.name,
+      finalPrice: price,
+      predictedPrice: _predictedPrice,
+    );
+
+    // Dispatch to the root RoomsBloc so the listing survives navigation
+    context.read<RoomsBloc>().add(RoomAdded(room));
+    Navigator.pop(context);
   }
 
   void _predict() {
@@ -122,10 +155,16 @@ class _AddRoomViewState extends State<_AddRoomView> {
       cancellationPolicy: _cancellationPolicy,
     );
 
+    // Reset any previous price so the save section hides until new result
+    setState(() {
+      _predictedPrice = null;
+      _finalPriceCtrl.clear();
+    });
+
     context.read<PredictionBloc>().add(PredictionRequested(request));
 
-    // Scroll to results
     Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
         duration: const Duration(milliseconds: 600),
@@ -467,8 +506,19 @@ class _AddRoomViewState extends State<_AddRoomView> {
             ),
             const SizedBox(height: 20),
 
-            // ── Result / error area ────────────────────────────
-            BlocBuilder<PredictionBloc, PredictionState>(
+            // ── Result / error / save area ─────────────────────
+            BlocConsumer<PredictionBloc, PredictionState>(
+              listener: (context, state) {
+                if (state is PredictionSuccess) {
+                  // Pre-fill editable price with AI suggestion
+                  final price = state.result.predictedUsdNight;
+                  setState(() {
+                    _predictedPrice = price;
+                    _finalPriceCtrl.text =
+                        price.toStringAsFixed(2);
+                  });
+                }
+              },
               builder: (context, state) {
                 if (state is PredictionLoading) {
                   return const Center(
@@ -482,7 +532,79 @@ class _AddRoomViewState extends State<_AddRoomView> {
                   return _ErrorBanner(message: state.message);
                 }
                 if (state is PredictionSuccess) {
-                  return PredictionResultCard(result: state.result);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      PredictionResultCard(result: state.result),
+                      const SizedBox(height: 20),
+
+                      // ── Editable final price ────────────────
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.stone50,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppTheme.stone200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.tune_rounded,
+                                    size: 16,
+                                    color: AppTheme.primary),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Adjust Your Final Price',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'The AI gives you a data-anchored baseline. '
+                              'Apply your local knowledge and adjust below.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppTheme.textSecondary,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              controller: _finalPriceCtrl,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                    RegExp(r'[0-9.]')),
+                              ],
+                              decoration: const InputDecoration(
+                                labelText: 'Final Nightly Price (USD)',
+                                prefixIcon: Icon(Icons.attach_money),
+                                hintText: 'e.g. 150.00',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // ── Save room button ────────────────────
+                      ElevatedButton.icon(
+                        onPressed: _saveRoom,
+                        icon: const Icon(Icons.check_circle_outline,
+                            size: 18),
+                        label: const Text('Save Room'),
+                      ),
+                    ],
+                  );
                 }
                 return const SizedBox.shrink();
               },

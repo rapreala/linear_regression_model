@@ -78,17 +78,19 @@ The app follows **Clean Architecture** with **BLoC state management**:
 ```text
 FlutterApp/
 └── lib/
-    ├── config/theme/          # AppTheme (teal + lodge-gold palette)
-    ├── core/constants/        # API base URL, Kigali district data
+    ├── config/theme/          # AppTheme (outside-web palette: #d06224 orange)
+    ├── core/constants/        # API base URL, 16 Kigali districts
     ├── data/
     │   ├── models/            # PredictionRequestModel, PredictionResponseModel
     │   ├── services/          # PredictionService (http POST /predict)
     │   └── repositories/      # PredictionRepositoryImpl
     ├── domain/
-    │   ├── entities/          # PredictionResult
+    │   ├── entities/          # PredictionResult, RoomEntry
     │   └── repositories/      # PredictionRepository (abstract)
     └── presentation/
-        ├── blocs/prediction/  # PredictionBloc, Event, State
+        ├── blocs/
+        │   ├── prediction/    # PredictionBloc, Event, State
+        │   └── rooms/         # RoomsBloc (root-level, survives navigation)
         └── screens/
             ├── dashboard/     # DashboardScreen — PMS module only
             └── rooms/         # ManageRoomsScreen, AddRoomScreen

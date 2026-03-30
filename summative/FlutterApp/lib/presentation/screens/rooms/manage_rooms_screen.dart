@@ -1,61 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../config/theme/app_theme.dart';
+import '../../../domain/entities/room_entry.dart';
+import '../../blocs/rooms/rooms_bloc.dart';
+import '../../blocs/rooms/rooms_state.dart';
 import 'add_room_screen.dart';
 
-class _RoomEntry {
-  final String name;
-  final String type;
-  final int accommodates;
-  final int bedrooms;
-  final String district;
-  final double? predictedPrice;
-
-  const _RoomEntry({
-    required this.name,
-    required this.type,
-    required this.accommodates,
-    required this.bedrooms,
-    required this.district,
-    this.predictedPrice,
-  });
-}
-
-class ManageRoomsScreen extends StatefulWidget {
+class ManageRoomsScreen extends StatelessWidget {
   const ManageRoomsScreen({super.key});
 
-  @override
-  State<ManageRoomsScreen> createState() => _ManageRoomsScreenState();
-}
-
-class _ManageRoomsScreenState extends State<ManageRoomsScreen> {
-  final List<_RoomEntry> _rooms = [
-    const _RoomEntry(
-      name: 'Deluxe Suite 101',
-      type: 'Hotel room',
-      accommodates: 4,
-      bedrooms: 2,
-      district: 'Kimihurura',
-      predictedPrice: 187.50,
-    ),
-    const _RoomEntry(
-      name: 'Standard Room 201',
-      type: 'Private room',
-      accommodates: 2,
-      bedrooms: 1,
-      district: 'Remera',
-      predictedPrice: 102.30,
-    ),
-  ];
-
-  void _onRoomAdded(_RoomEntry room) => setState(() => _rooms.add(room));
-
-  void _navigateToAdd() {
-    Navigator.push<_RoomEntry>(
+  void _navigateToAdd(BuildContext context) {
+    Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AddRoomScreen()),
-    ).then((room) {
-      if (room != null) _onRoomAdded(room);
-    });
+    );
   }
 
   @override
@@ -64,11 +22,10 @@ class _ManageRoomsScreenState extends State<ManageRoomsScreen> {
       appBar: AppBar(
         title: const Text('Manage Rooms'),
         actions: [
-          // Pill "Add room" button — matches outside-web CTA style
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: TextButton.icon(
-              onPressed: _navigateToAdd,
+              onPressed: () => _navigateToAdd(context),
               style: TextButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
@@ -84,25 +41,32 @@ class _ManageRoomsScreenState extends State<ManageRoomsScreen> {
           ),
         ],
       ),
-      body: _rooms.isEmpty
-          ? _EmptyState(onAdd: _navigateToAdd)
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              itemCount: _rooms.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (_, i) => _RoomCard(room: _rooms[i]),
-            ),
+      body: BlocBuilder<RoomsBloc, RoomsState>(
+        builder: (context, state) {
+          if (state.rooms.isEmpty) {
+            return _EmptyState(onAdd: () => _navigateToAdd(context));
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            itemCount: state.rooms.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            itemBuilder: (_, i) => _RoomCard(room: state.rooms[i]),
+          );
+        },
+      ),
     );
   }
 }
 
-// ── Room card — stone-50 bg, rounded-3xl border, matching outside-web list style
 class _RoomCard extends StatelessWidget {
-  final _RoomEntry room;
+  final RoomEntry room;
   const _RoomCard({required this.room});
 
   @override
   Widget build(BuildContext context) {
+    final wasAdjusted = room.predictedPrice != null &&
+        (room.finalPrice - room.predictedPrice!).abs() > 0.01;
+
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.stone50,
@@ -143,24 +107,23 @@ class _RoomCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (room.predictedPrice != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '\$${room.predictedPrice!.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color: AppTheme.primary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
-                      ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '\$${room.finalPrice.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
                     ),
-                    const Text('/ night',
-                        style: TextStyle(
-                            color: AppTheme.textSecondary, fontSize: 11)),
-                  ],
-                ),
+                  ),
+                  const Text('/ night',
+                      style: TextStyle(
+                          color: AppTheme.textSecondary, fontSize: 11)),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -177,6 +140,13 @@ class _RoomCard extends StatelessWidget {
                       '${room.bedrooms} bed${room.bedrooms != 1 ? 's' : ''}'),
               _Pill(
                   icon: Icons.location_on_outlined, label: room.district),
+              if (wasAdjusted)
+                _Pill(
+                  icon: Icons.tune_rounded,
+                  label:
+                      'AI \$${room.predictedPrice!.toStringAsFixed(0)} → adjusted',
+                  highlight: true,
+                ),
             ],
           ),
         ],
@@ -188,25 +158,43 @@ class _RoomCard extends StatelessWidget {
 class _Pill extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _Pill({required this.icon, required this.label});
+  final bool highlight;
+
+  const _Pill({
+    required this.icon,
+    required this.label,
+    this.highlight = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: highlight
+            ? AppTheme.primary.withValues(alpha: 0.08)
+            : AppTheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.stone200),
+        border: Border.all(
+          color: highlight
+              ? AppTheme.primary.withValues(alpha: 0.3)
+              : AppTheme.stone200,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: AppTheme.textSecondary),
+          Icon(icon,
+              size: 13,
+              color:
+                  highlight ? AppTheme.primary : AppTheme.textSecondary),
           const SizedBox(width: 4),
           Text(label,
-              style: const TextStyle(
-                  fontSize: 12, color: AppTheme.textSecondary)),
+              style: TextStyle(
+                  fontSize: 12,
+                  color: highlight
+                      ? AppTheme.primary
+                      : AppTheme.textSecondary)),
         ],
       ),
     );
